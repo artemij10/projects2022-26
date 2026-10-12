@@ -1,0 +1,360 @@
+-- Loģistikas un piegāžu uzņēmuma datu bāze
+-- Vārds Uzvārds: Artjoms Sideļovs P24-1
+
+DROP TABLE IF EXISTS Maksajumi;
+DROP TABLE IF EXISTS Piegades;
+DROP TABLE IF EXISTS Sutijumi;
+DROP TABLE IF EXISTS Transportlidzekli;
+DROP TABLE IF EXISTS Kurjeri;
+DROP TABLE IF EXISTS Klienti;
+DROP TABLE IF EXISTS Marsruti;
+
+-- 1. Marsruti
+CREATE TABLE Marsruti (
+  marsruts_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  regiona_nos VARCHAR(50) NOT NULL,
+  piegades_cena DECIMAL(10,2) NOT NULL CHECK(piegades_cena >= 0),
+  piegades_laiks_dienas INTEGER NOT NULL DEFAULT 2
+);
+
+-- 2. Klienti
+CREATE TABLE Klienti (
+  klients_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  vards VARCHAR(50) NOT NULL,
+  uzvards VARCHAR(50) NOT NULL,
+  epasts VARCHAR(50) UNIQUE NOT NULL,
+  talrunis VARCHAR(20) NOT NULL,
+  pilseta VARCHAR(50) NOT NULL,
+  adrese TEXT NOT NULL
+);
+
+-- 3. Kurjeri
+CREATE TABLE Kurjeri (
+  kurjers_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  vards VARCHAR(50) NOT NULL,
+  uzvards VARCHAR(50) NOT NULL,
+  talrunis VARCHAR(20) UNIQUE NOT NULL,
+  statuss VARCHAR(20) NOT NULL DEFAULT 'Aktīvs',
+  piegazu_limits INTEGER NOT NULL CHECK(piegazu_limits >= 0)
+);
+
+-- 4. Transportlidzekli
+CREATE TABLE Transportlidzekli (
+  transports_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  valsts_numurs VARCHAR(15) UNIQUE NOT NULL,
+  tips VARCHAR(30) NOT NULL,
+  ietilpiba_kg DECIMAL(10, 2) NOT NULL CHECK(ietilpiba_kg > 0),
+  ir_darba_kartiba BOOLEAN NOT NULL DEFAULT 1
+);
+
+-- 5. Sutijumi
+CREATE TABLE Sutijumi (
+  sutijums_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  klients_id INTEGER NOT NULL,
+  marsruts_id INTEGER NOT NULL,
+  svars_kg DECIMAL(10, 2) NOT NULL CHECK(svars_kg > 0),
+  saturs VARCHAR(100) NOT NULL,
+  reg_datums DATE NOT NULL,
+  FOREIGN KEY (klients_id) REFERENCES Klienti(klients_id),
+  FOREIGN KEY (marsruts_id) REFERENCES Marsruti(marsruts_id)
+);
+
+-- 6. Piegades
+CREATE TABLE Piegades (
+  piegade_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  sutijums_id INTEGER NOT NULL UNIQUE,
+  kurjers_id INTEGER NOT NULL,
+  transports_id INTEGER NOT NULL,
+  izsniegsanas_datums DATE NOT NULL,
+  faktiskais_datums DATE,
+  statuss VARCHAR(30) NOT NULL DEFAULT 'Apstrādē',
+  FOREIGN KEY (sutijums_id) REFERENCES Sutijumi(sutijums_id),
+  FOREIGN KEY (kurjers_id) REFERENCES Kurjeri(kurjers_id),
+  FOREIGN KEY (transports_id) REFERENCES Transportlidzekli(transports_id)
+);
+
+-- 7. Maksajumi
+CREATE TABLE Maksajumi (
+  maksajums_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  sutijums_id INTEGER NOT NULL,
+  summa DECIMAL(10, 2) NOT NULL CHECK(summa > 0),
+  maksajuma_datums DATE NOT NULL,
+  veids VARCHAR(30) NOT NULL,
+  statuss VARCHAR(20) NOT NULL DEFAULT 'Apmaksāts',
+  FOREIGN KEY (sutijums_id) REFERENCES Sutijumi(sutijums_id)
+);
+
+----------------------------------------------------------------------------- Ievietot datus
+-- Maršruti (8)
+INSERT INTO Marsruti (regiona_nos, piegades_cena, piegades_laiks_dienas) VALUES
+('Rīgas Centrs', 5.00, 1),
+('Pierīga', 7.50, 1),
+('Kurzeme', 12.00, 3),
+('Vidzeme', 11.00, 3),
+('Latgale', 14.00, 3),
+('Zemgale', 10.00, 3),
+('Ekspresis Baltija', 25.00, 1),
+('Starptautiskā Eiropa', 45.00, 7);
+
+-- Klienti (15)
+INSERT INTO Klienti (vards, uzvards, epasts, talrunis, pilseta, adrese) VALUES  
+('Artjoms', 'Sideļovs', 'asidelovs@logistika.lv', '26439349', 'Rīga', 'Brīvības iela 45'),
+('Marks', 'Lipiņš', 'mlipins@mail.lv', '23828374', 'Jelgava', 'Lielā iela 12'),
+('Ints', 'Liepa', 'ints@inbox.lv', '29999999', 'Rīga', 'Valdemāra iela 88'),
+('Ieva', 'Vītola', 'ieva@epasts.lv', '28111111', 'Valmiera', 'Rīgas iela 5'),
+('Kārlis', 'Gauja', 'karlis@firma.lv', '28222222', 'Cēsis', 'Pļavu iela 3'),
+('Dace', 'Riekstiņa', 'dace@inbox.lv', '28333333', 'Rīga', 'Ausekļa iela 11'),
+('Gatis', 'Sila', 'gatis@sils.lv', '28444444', 'Ventspils', 'Jūras iela 24'),
+('Zane', 'Auziņa', 'zane@auzina.lv', '28555555', 'Jūrmala', 'Jomas iela 55'),
+('Juris', 'Kļaviņš', 'juris@klavins.lv', '28666666', 'Tukums', 'Raudas iela 9'),
+('Ilze', 'Zvaigzne', 'ilze@zvaigzne.lv', '28777777', 'Rīga', 'Čaka iela 102'),
+('Artūrs', 'Mēness', 'arturs@meness.lv', '28888888', 'Daugavpils', 'Maija iela 1'),
+('Baiba', 'Saule', 'baiba@saule.lv', '28989898', 'Rēzekne', 'Atbrīvošanas aleja 4'),
+('Oskars', 'Vējš', 'oskars@vejs.lv', '27111111', 'Liepāja', 'Graudu iela 7'),
+('Rūta', 'Kļava', 'ruta@klava.lv', '27222222', 'Jelgava', 'Lielā iela 34'),
+('Ēriks', 'Meļnikovs', 'eriks@melnikovs.lv', '22224432', 'Rīga', 'Tallinas iela 19');
+
+-- Kurjeri (8)
+INSERT INTO Kurjeri (vards, uzvards, talrunis, statuss, piegazu_limits) VALUES
+('Jānis', 'Bērziņš', '29111111', 'Aktīvs', 20),
+('Andris', 'Ozoliņš', '29222222', 'Aktīvs', 25),
+('Māris', 'Kociņš', '29333333', 'Atvaļinājumā', 15),
+('Edgars', 'Kalniņš', '29444444', 'Aktīvs', 30),
+('Kaspars', 'Krūmiņš', '29555555', 'Aktīvs', 20),
+('Mārtiņš', 'Smiltnieks', '29666666', 'Slimības lapa', 10),
+('Valdis', 'Apinis', '29777777', 'Aktīvs', 25),
+('Uldis', 'Balodis', '29888888', 'Aktīvs', 20);
+
+-- Transportlīdzekļi (8)
+INSERT INTO Transportlidzekli (valsts_numurs, tips, ietilpiba_kg, ir_darba_kartiba) VALUES
+('AA-1111', 'Kravas furgons', 3500.00, 1),
+('BB-2222', 'Kravas furgons', 3500.00, 1),
+('CC-3333', 'Kravas furgons', 2500.00, 1),
+('DD-4444', 'Vieglais auto', 500.00, 1),
+('EE-5555', 'Vieglais auto', 600.00, 0),
+('FF-6666', 'Elektro skrejritenis', 30.00, 1),
+('GG-7777', 'Kravas furgons', 5000.00, 1),
+('HH-8888', 'Vieglais auto', 550.00, 0);
+
+-- Sūtījumi (30)
+INSERT INTO Sutijumi (klients_id, marsruts_id, svars_kg, saturs, reg_datums) VALUES
+(1, 1, 5.20, 'Dokumenti un mapes', '2026-05-01'),
+(2, 3, 45.00, 'Auto rezerves daļas', '2026-05-02'),
+(3, 1, 120.00, 'Biroja mēbeles', '2026-05-03'),
+(4, 4, 2.10, 'Apģērbs un apavi', '2026-05-04'),
+(5, 6, 15.40, 'Dārza instrumenti', '2026-05-05'),
+(6, 2, 8.00, 'Mājas elektronika', '2026-05-06'),
+(7, 3, 22.00, 'Sporta inventārs', '2026-05-07'),
+(8, 2, 1.50, 'Smaržas un kosmētika', '2026-05-08'),
+(9, 6, 75.00, 'Būvmateriāli paraugi', '2026-05-09'),
+(10, 5, 4.30, 'Grāmatas un žurnāli', '2026-05-10'),
+(11, 5, 32.10, 'Sadzīves tehnika', '2026-05-11'),
+(12, 5, 10.00, 'Dators un piederumi', '2026-05-12'),
+(13, 3, 2.80, 'Bērnu rotaļlietas', '2026-05-13'),
+(14, 6, 18.50, 'Virtuves piederumi', '2026-05-14'),
+(15, 1, 0.50, 'Svarīga vēstule', '2026-05-15'),
+(1, 2, 14.20, 'Apgaismojuma tehnika', '2026-05-16'),
+(2, 7, 3.10, 'Medicīnas preces', '2026-05-17'),
+(3, 4, 150.00, 'Apkures katls', '2026-05-18'),
+(4, 4, 8.40, 'Mājas tekstils', '2026-05-19'),
+(5, 6, 65.00, 'Zāles pļāvējs', '2026-05-20'),
+(6, 1, 1.10, 'Telefons un vāciņš', '2026-05-21'),
+(7, 3, 12.00, 'Velosipēda detaļas', '2026-05-22'),
+(8, 2, 9.30, 'Trauku komplekts', '2026-05-23'),
+(9, 6, 4.00, 'Kafijas aparāts', '2026-05-24'),
+(10, 8, 11.50, 'Glezna rāmī', '2026-05-25'),
+(11, 5, 55.00, 'Veļas mazgājamā mašīna', '2026-05-26'),
+(12, 5, 2.00, 'Sienas pulkstenis', '2026-05-27'),
+(13, 3, 19.80, 'Tūrisma telts', '2026-05-28'),
+(14, 6, 6.40, 'Zemledus makšķeres', '2026-05-29'),
+(15, 1, 1.20, 'Līguma dokumenti', '2026-05-30');
+
+-- Piegādes (30)
+INSERT INTO Piegades (sutijums_id, kurjers_id, transports_id, izsniegsanas_datums, faktiskais_datums, statuss) VALUES
+(1, 1, 4, '2026-05-02', '2026-05-02', 'Piegādāts'),
+(2, 2, 1, '2026-05-03', '2026-05-05', 'Piegādāts'),
+(3, 4, 2, '2026-05-04', '2026-05-05', 'Kavējas'),
+(4, 5, 4, '2026-05-05', '2026-05-07', 'Piegādāts'),
+(5, 7, 3, '2026-05-06', '2026-05-08', 'Piegādāts'),
+(6, 1, 4, '2026-05-07', '2026-05-07', 'Piegādāts'),
+(7, 2, 1, '2026-05-08', '2026-05-10', 'Piegādāts'),
+(8, 8, 8, '2026-05-09', '2026-05-09', 'Piegādāts'),
+(9, 7, 3, '2026-05-10', '2026-05-12', 'Kavējas'),
+(10, 4, 2, '2026-05-11', '2026-05-14', 'Piegādāts'),
+(11, 5, 7, '2026-05-12', '2026-05-15', 'Piegādāts'),
+(12, 4, 2, '2026-05-13', '2026-05-15', 'Piegādāts'),
+(13, 2, 1, '2026-05-14', '2026-05-16', 'Piegādāts'),
+(14, 7, 3, '2026-05-15', '2026-05-17', 'Piegādāts'),
+(15, 1, 6, '2026-05-16', '2026-05-16', 'Piegādāts'),
+(16, 8, 8, '2026-05-17', '2026-05-18', 'Piegādāts'),
+(17, 4, 4, '2026-05-18', '2026-05-19', 'Piegādāts'),
+(18, 2, 7, '2026-05-19', '2026-05-22', 'Atgriezts atpakaļ'),
+(19, 5, 8, '2026-05-20', '2026-05-22', 'Piegādāts'),
+(20, 7, 1, '2026-05-21', '2026-05-23', 'Piegādāts'),
+(21, 1, 6, '2026-05-22', '2026-05-22', 'Piegādāts'),
+(22, 2, 1, '2026-05-23', '2026-05-25', 'Piegādāts'),
+(23, 8, 4, '2026-05-24', '2026-05-25', 'Piegādāts'),
+(24, 7, 3, '2026-05-25', '2026-05-27', 'Piegādāts'),
+(25, 4, 2, '2026-05-26', NULL, 'Ceļā'),
+(26, 5, 7, '2026-05-27', NULL, 'Ceļā'),
+(27, 1, 8, '2026-05-28', NULL, 'Apstrādē'),
+(28, 2, 1, '2026-05-29', NULL, 'Apstrādē'),
+(29, 8, 4, '2026-05-30', NULL, 'Apstrādē'),
+(30, 1, 4, '2026-05-31', NULL, 'Apstrādē');
+
+-- Maksājumi (25)
+INSERT INTO Maksajumi (sutijums_id, summa, maksajuma_datums, veids, statuss) VALUES
+(1, 15.00, '2026-05-01', 'Kredītkarte', 'Apmaksāts'),
+(2, 45.50, '2026-05-02', 'Bankas pārskaitījums', 'Apmaksāts'),
+(3, 120.00, '2026-05-03', 'Kredītkarte', 'Apmaksāts'),
+(4, 18.00, '2026-05-04', 'Skaidra nauda', 'Apmaksāts'),
+(5, 32.00, '2026-05-05', 'Debetkarte', 'Apmaksāts'),
+(6, 22.00, '2026-05-06', 'Kredītkarte', 'Apmaksāts'),
+(7, 38.00, '2026-05-07', 'Bankas pārskaitījums', 'Apmaksāts'),
+(8, 12.50, '2026-05-08', 'Skaidra nauda', 'Apmaksāts'),
+(9, 85.00, '2026-05-09', 'Kredītkarte', 'Apmaksāts'),
+(10, 19.90, '2026-05-10', 'Debetkarte', 'Apmaksāts'),
+(11, 54.00, '2026-05-11', 'Bankas pārskaitījums', 'Apmaksāts'),
+(12, 41.00, '2026-05-12', 'Kredītkarte', 'Apmaksāts'),
+(13, 15.00, '2026-05-13', 'Skaidra nauda', 'Apmaksāts'),
+(14, 39.00, '2026-05-14', 'Debetkarte', 'Apmaksāts'),
+(15, 8.00, '2026-05-15', 'Kredītkarte', 'Apmaksāts'),
+(16, 29.00, '2026-05-16', 'Bankas pārskaitījums', 'Apmaksāts'),
+(17, 65.00, '2026-05-17', 'Kredītkarte', 'Apmaksāts'),
+(18, 180.00, '2026-05-18', 'Kredītkarte', 'Apmaksāts'),
+(19, 26.50, '2026-05-19', 'Skaidra nauda', 'Apmaksāts'),
+(20, 78.00, '2026-05-20', 'Debetkarte', 'Apmaksāts'),
+(21, 14.00, '2026-05-21', 'Kredītkarte', 'Apmaksāts'),
+(22, 42.00, '2026-05-22', 'Bankas pārskaitījums', 'Apmaksāts'),
+(23, 27.00, '2026-05-23', 'Skaidra nauda', 'Nav apmaksāts'),
+(24, 31.50, '2026-05-24', 'Kredītkarte', 'Apmaksāts'),
+(25, 110.00, '2026-05-25', 'Bankas pārskaitījums', 'Nav apmaksāts');
+
+--------------------------------------------------Vaicājumi
+--A. Vienkārši SELECT (7)
+SELECT * from Marsruti; -- Atlasa visus maršrutus
+SELECT * from Klienti; -- Atlasa visus klientus
+seleCt * FROM Kurjeri; -- Atlasa visus kurjerus
+SELECT * FROM Transportlidzekli; -- Atlasa visus transportlīdzekļus
+SELECT * FROM Sutijumi; -- Atlasa visus sūtījumus
+SELECT * FROM Piegades; -- Atlasa visas piegādes
+SELECT * FROM Maksajumi; -- Atlasa visus maksājumus
+
+--B. WHERE filtrēšana (10)
+SELECT * FROM Klienti WHERE pilseta = 'Jelgava'; -- Atrod klientus, kas dzīvo Jelgavā
+SELECT * FROM Sutijumi WHERE svars_kg >= 70.00; -- Atrod sūtījumus, kas smagāki par 70kg
+SELECT * FROM Kurjeri WHERE statuss = 'Atvaļinājumā'; -- Atrod kurjerus atvaļinājumā
+SELECT * FROM Maksajumi WHERE summa <= 10.00; -- Atrod maksājumus līdz 10 eiro
+SELECt * FROM Sutijumi WHERE reg_datums <= '2026-05-05'; -- Atrod sūtījumus līdz noteiktam datumam
+SELECT * FROM Transportlidzekli WHERE ir_darba_kartiba = 0; -- Atrod transportus, kas nedarbojas
+SELECT * FROM Piegades WHERE statuss = 'Kavējas'; -- Atrod piegādes, kas kavējas
+SELECt * FROM Transportlidzekli WHERE tips = 'Vieglais auto'; -- Atrod visus vieglos auto
+SELECT * FROM Marsruti WHERE piegades_laiks_dienas >= 3; -- Atrod maršrutus ar ilgu piegādi
+SELECT * FROM Maksajumi WHERE statuss = 'Nav apmaksāts'; -- Atrod visus neapmaksātos rēķinus
+
+--C. ORDER BY (6)
+SELECT uzvards FROM Klienti ORDER BY vards ASC; -- Kārto uzvārdus pēc vārda alfabēta
+SELECT * FROM Sutijumi ORDER BY svars_kg DESC; -- Kārto sūtījumus pēc svara no lielākā
+SELECT sutijums_id, summa FROM Maksajumi ORDER BY summa DESC; -- Kārto maksājumus pēc summas no lielākās
+SELECT * FROM Piegades ORDER BY izsniegsanas_datums DESC; -- Kārto piegādes pēc jaunākā datuma
+SELECT * FROM Transportlidzekli ORDER BY ietilpiba_kg DESC; -- Kārto transportu pēc ietilpības
+SELECT * FROM Kurjeri ORDER BY piegazu_limits DESC; -- Kārto kurjerus pēc lielākā limita
+
+--D. JOIN (12)
+SELECT Klienti.vards, Klienti.uzvards, Sutijumi.reg_datums
+FROM Sutijumi
+JOIN Klienti ON Sutijumi.klients_id = Klienti.klients_id; -- Savieno sūtījumus ar klientu datiem
+
+SELECT Sutijumi.sutijums_id,Sutijumi.saturs, Marsruti.regiona_nos,Marsruti.piegades_laiks_dienas
+FROM Sutijumi
+JOIN Marsruti ON Sutijumi.marsruts_id = Marsruti.marsruts_id; -- Savieno sūtījumus ar reģionu datiem
+
+SELECT Piegades.piegade_id, Kurjeri.vards,Kurjeri.uzvards, Transportlidzekli.tips AS transports
+FROM Piegades
+JOIN Kurjeri ON Piegades.kurjers_id = Kurjeri.kurjers_id
+JOIN Transportlidzekli ON Piegades.transports_id = Transportlidzekli.transports_id; -- Savieno piegādes ar kurjeru un transportu
+
+SELECT Piegades.piegade_id, Transportlidzekli.tips AS Transports, Transportlidzekli.valsts_numurs
+FROM Piegades
+JOIN Transportlidzekli ON Piegades.transports_id = Transportlidzekli.transports_id; -- Parāda transporta numuru piegādēm
+
+SELECT Klienti.klients_id, Sutijumi.saturs as sutijuma_saturs, Maksajumi.summa, Maksajumi.veids AS maksajuma_veids
+FROM Sutijumi
+Join Klienti On Klienti.klients_id = Sutijumi.klients_id
+JOIN Maksajumi On Maksajumi.sutijums_id = Sutijumi.sutijums_id; -- Savieno klientu, sūtījumu un maksājumu kopā
+
+SELECT Sutijumi.sutijums_id, Kurjeri.uzvards, Piegades.statuss
+FROM Piegades
+JOIN Sutijumi ON Piegades.sutijums_id = Sutijumi.sutijums_id
+JOIN Kurjeri ON Piegades.kurjers_id = Kurjeri.kurjers_id; -- Savieno sūtījumus ar kurjera uzvārdu un statusu
+
+SELECT Piegades.piegade_id, Transportlidzekli.tips, Piegades.statuss 
+FROM Piegades 
+JOIN Transportlidzekli ON Piegades.transports_id = Transportlidzekli.transports_id WHERE Piegades.statuss = 'Ceļā'; -- Atrod transporta tipu piegādēm ceļā
+
+SELECT Klienti.vards, Klienti.uzvards, Marsruti.regiona_nos
+FROM Sutijumi
+JOIN Klienti ON Sutijumi.klients_id = Klienti.klients_id
+JOIN Marsruti ON Sutijumi.marsruts_id = Marsruti.marsruts_id WHERE Marsruti.regiona_nos = 'Kurzeme'; -- Atrod Kurzemei piesaistītos klientus
+
+SELECT Piegades.piegade_id, Klienti.uzvards AS Klients, Kurjeri.uzvards AS Kurjers, Transportlidzekli.valsts_numurs, Piegades.statuss
+FROM Piegades
+JOIN Sutijumi ON Piegades.sutijums_id = Sutijumi.sutijums_id
+JOIN Klienti ON Sutijumi.klients_id = Klienti.klients_id
+JOIN Kurjeri ON Piegades.kurjers_id = Kurjeri.kurjers_id
+JOIN Transportlidzekli ON Piegades.transports_id = Transportlidzekli.transports_id; -- Pilns un detalizēts loģistikas pārskats
+
+SELECT Maksajumi.maksajums_id, Maksajumi.summa, Maksajumi.veids
+FROM Maksajumi
+JOIN Sutijumi ON Maksajumi.sutijums_id = Sutijumi.sutijums_id WHERE Maksajumi.veids = 'Kredītkarte'; -- Parāda kredītkaršu maksājumu datus
+
+SELECT Maksajumi.maksajums_id, Klienti.uzvards, Maksajumi.summa 
+FROM Maksajumi 
+JOIN Sutijumi ON Maksajumi.sutijums_id = Sutijumi.sutijums_id 
+JOIN Klienti ON Sutijumi.klients_id = Klienti.klients_id; -- Parāda, kurš klients veica konkrētu maksājumu
+
+SELECT Sutijumi.sutijums_id, Marsruti.piegades_cena 
+FROM Sutijumi 
+JOIN Marsruti ON Sutijumi.marsruts_id = Marsruti.marsruts_id WHERE Marsruti.piegades_cena > 20.00; -- Parāda dārgos sūtījumu maršrutus
+
+--E. Agregācijas (10)
+SELECT COUNT(*) AS kopejais_klientu_skaits FROM Klienti; -- Saskaita kopējos klientus
+SELECT COUNT(*) AS kopejais_kurjeru_skaits FROM Kurjeri; -- Saskaita kopējos kurjerus
+SELECT AVG(svars_kg) AS videjais_sutijuma_svars FROM Sutijumi; -- Aprēķina vidējo sūtījuma svaru
+SELECT MAX(piegades_cena) AS maksimāla_piegādes_cena FROM Marsruti; -- Atrod visdārgāko cenu maršrutos
+SELECT MIN(piegades_cena) AS minimala_piegades_cena FROM Marsruti; -- Atrod viszemāko cenu maršrutos
+SELECT SUM(summa) AS kopeja_ieņemumu_summa FROM Maksajumi WHERE statuss = 'Apmaksāts'; -- Aprēķina kopējos ieņēmumus
+SELECT pilseta, COUNT(*) AS klientu_skaits_pilseta FROM Klienti GROUP BY pilseta; -- Saskaita klientus pa pilsētām
+SELECT statuss, COUNT(*) AS piegazu_skaits_statusa FROM Piegades GROUP BY statuss; -- Saskaita piegādes pa statusiem
+SELECT veids, AVG(summa) AS videja_summa_veidam FROM Maksajumi GROUP BY veids; -- Aprēķina vidējo maksājumu katram veidam
+SELECT tips, MAX(ietilpiba_kg) AS maksimala_ietilpiba FROM Transportlidzekli GROUP BY tips; -- Atrod lielāko ietilpību katram transporta tipam
+
+--F. UPDATE (5)
+SELECT * FROM Transportlidzekli WHERE transports_id = 8; -- 1. Pārbauda transportu Nr. 8 pirms labošanas
+UPDATE Transportlidzekli SET ir_darba_kartiba = 1 WHERE transports_id = 8; -- 1. Atzīmē transportu Nr. 8 kā salabotu
+SELECT * FROM Transportlidzekli WHERE transports_id = 8; -- 1. Pārbauda transportu Nr. 8 pēc labošanas
+
+SELECT * FROM Kurjeri WHERE kurjers_id = 3; -- 2. Pārbauda kurjeru Nr. 3 pirms statusa maiņas
+UPDATE Kurjeri SET statuss = 'Aktīvs' WHERE kurjers_id = 3; -- 2. Nomaina statusu uz Aktīvs kurjeram Nr. 3
+SELECT * FROM Kurjeri WHERE kurjers_id = 3; -- 2. Pārbauda kurjeru Nr. 3 pēc statusa maiņas
+
+SELECT * FROM Marsruti WHERE marsruts_id = 1; -- 3. Pārbauda maršrutu Nr. 1 pirms cenas maiņas
+UPDATE Marsruti SET piegades_cena = 6.00 WHERE marsruts_id = 1; -- 3. Paceļ cenu Rīgas centram uz 6 eiro
+SELECT * FROM Marsruti WHERE marsruts_id = 1; -- 3. Pārbauda jauno cenu maršrutam Nr. 1
+
+SELECT * FROM Maksajumi WHERE maksajums_id = 23; -- 4. Pārbauda maksājumu Nr. 23 pirms apmaksas
+UPDATE Maksajumi SET statuss = 'Apmaksāts', maksajuma_datums = '2026-05-28' WHERE maksajums_id = 23; -- 4. Atzīmē maksājumu Nr. 23 kā apmaksātu
+SELECT * FROM Maksajumi WHERE maksajums_id = 23; -- 4. Pārbauda maksājumu Nr. 23 pēc apmaksas
+
+SELECT * FROM Piegades WHERE piegade_id = 3; -- 5. Pārbauda piegādi Nr. 3 pirms statusa maiņas
+UPDATE Piegades SET statuss = 'Piegādāts', faktiskais_datums = '2026-05-06' WHERE piegade_id = 3; -- 5. Atzīmē piegādi Nr. 3 kā nodotu
+SELECT * FROM Piegades WHERE piegade_id = 3; -- 5. Pārbauda piegādi Nr. 3 pēc statusa maiņas
+
+--G. DELETE (2)
+SELECT * FROM Maksajumi WHERE maksajums_id = 25; -- 1. Pārbauda maksājumu Nr. 25 pirms dzēšanas
+DELETE FROM Maksajumi WHERE maksajums_id = 25; -- 1. Izdzēš maksājumu Nr. 25 no sistēmas
+SELECT * FROM Maksajumi WHERE maksajums_id = 25; -- 1. Pārbauda vai maksājums Nr. 25 ir izdzēsts
+
+SELECT * FROM Marsruti WHERE marsruts_id = 8; -- 2. Pārbauda maršrutu Nr. 8 pirms dzēšanas
+DELETE FROM Marsruti WHERE marsruts_id = 8; -- 2. Izdzēš maršrutu Nr. 8 no sistēmas
+SELECT * FROM Marsruti WHERE marsruts_id = 8; -- 2. Pārbauda vai maršruts Nr. 8 ir izdzēsts
